@@ -1,4 +1,4 @@
-# 🛡️ Mobile Wireless Attack Detection Suite
+# 🛡️ Attack Detection Suite
 
 This project contains a suite of Python tools to detect wireless attacks across different OSI layers targeting mobile devices. It uses a combination of **rule-based** and **unsupervised machine learning (Isolation Forest)** methods.
 
