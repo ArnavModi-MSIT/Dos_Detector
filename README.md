@@ -1,106 +1,117 @@
-WiFi DoS Attack Detection with Machine Learning
-===============================================
+# 🛡️ Mobile Wireless Attack Detection Suite
 
-A Python-based toolkit that captures 802.11 WiFi packets, extracts features, and applies ML techniques to detect Denial-of-Service (DoS) attacks and spoofed packets in real-time.
+This project contains a suite of Python tools to detect wireless attacks across different OSI layers targeting mobile devices. It uses a combination of **rule-based** and **unsupervised machine learning (Isolation Forest)** methods.
 
---------------------------------------------------------
-FEATURES
---------------------------------------------------------
+---
 
-- Real-time WiFi packet capture using Scapy and PyShark
-- Feature extraction for DoS detection (Deauth, Beacon, Auth floods)
-- Advanced metrics: sequence anomalies, timing irregularities, retry rates
-- ML-based analysis using:
-    • Isolation Forest (Unsupervised)
-    • Random Forest Classifier (Supervised)
-    • DBSCAN clustering
-- Fake/spoofed packet detection
-- Comprehensive threat reporting and CSV export
+## 📦 Requirements
 
---------------------------------------------------------
-SETUP
---------------------------------------------------------
+- Python 3.8+
+- `scapy`
+- `numpy`
+- `pandas`
+- `scikit-learn`
 
-1. Clone the Repository:
-------------------------
-    git clone https://github.com/yourusername/WiFi-DoS-Detector-ML.git
-    cd WiFi-DoS-Detector-ML
+Install all dependencies in a virtual environment.
 
-2. Create a Python Virtual Environment:
----------------------------------------
-    python3 -m venv .venv
-    source .venv/bin/activate
+```bash
+# 1. Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
 
-3. Install Dependencies:
-------------------------
-    pip install -r requirements.txt
+# 2. Install required packages
+pip install -r requirements.txt
+```
 
---------------------------------------------------------
-USAGE INSTRUCTIONS
---------------------------------------------------------
+Sample `requirements.txt`:
+```text
+scapy
+numpy
+pandas
+scikit-learn
+```
 
-Step 1: Prepare WiFi Interface for Monitoring
----------------------------------------------
-    sudo airmon-ng check kill
-    sudo airmon-ng start wlan1
-    sudo airodump-ng wlan1mon
-    sudo iwconfig wlan1mon channel 9
+---
 
-(Replace 'wlan1' with your wireless adapter name and channel 9 with your target AP's channel.)
+## 📡 Setup Monitor Mode for Wireless Interface
 
-Step 2: Start Packet Capture
-----------------------------
-    sudo .venv/bin/python collector.py
+Before running the scripts, you must enable monitor mode:
 
-• Enter the number of packets to capture (e.g., 1000)
-• Enter the MAC address to filter (or leave blank for all traffic)
+```bash
+sudo airmon-ng check kill              # Stop conflicting processes
+sudo airmon-ng start wlan1             # Start monitor mode (creates wlan1mon)
+sudo airodump-ng wlan1mon              # Confirm the interface is working
+sudo iwconfig wlan1mon channel 9       # Set the correct WiFi channel (change '9' as needed)
+```
 
-Step 3: Run ML Analysis
------------------------
-    sudo .venv/bin/python analyse.py
+---
 
-• Produces threat levels like CRITICAL, HIGH, MEDIUM, etc.
-• Outputs: ml_analysis_results.csv
+## 📂 Navigate to Script Directory
 
-Step 4: Restore Original Network Settings
------------------------------------------
-    sudo airmon-ng stop wlan1mon
-    sudo service NetworkManager restart
+```bash
+cd /path/to/your/detection/scripts
+```
 
---------------------------------------------------------
-OUTPUT FILES
---------------------------------------------------------
+---
 
-• dos_capture.pcap         → Raw WiFi packets
-• dos_features.csv         → Extracted features from packets
-• ml_analysis_results.csv  → Final threat analysis results
+## 🚀 Run Detectors (One by One)
 
---------------------------------------------------------
-REQUIREMENTS
---------------------------------------------------------
+Run each script using the virtual environment's Python binary.
 
-• Linux system (Kali Linux recommended)
-• External WiFi adapter supporting monitor mode
-• Python 3.7+
+```bash
+sudo .venv/bin/python network_layer_detection.py
+sudo .venv/bin/python internet_layer_detection.py
+sudo .venv/bin/python transport_layer_detection.py
+sudo .venv/bin/python application_layer_detection.py
+```
 
-Python Dependencies (in requirements.txt):
-------------------------------------------
-• scapy
-• pyshark
-• pandas
-• numpy
-• matplotlib
-• seaborn
-• scikit-learn
+> ⚠️ You will be prompted to enter:
+> - Monitor interface name (e.g. `wlan1mon`)
+> - Target mobile device's **MAC address** or **IP address** depending on the layer
 
---------------------------------------------------------
-LICENSE
---------------------------------------------------------
+---
 
-This project is licensed under the MIT License.
+## 🧹 Restore Network After Detection
 
---------------------------------------------------------
-CREDITS
---------------------------------------------------------
+Once you're done:
 
-Developed for educational and research purposes in IoT and Cybersecurity.
+```bash
+sudo airmon-ng stop wlan1mon
+sudo service NetworkManager restart
+```
+
+---
+
+## 🗃️ Output
+
+Each script will generate its own `.csv` file logging:
+- Detected attacks
+- Timestamped features
+- Anomaly scores
+- Confidence levels
+
+---
+
+## ✅ Detection Capabilities Per Layer
+
+| Layer              | Script                       | Detects |
+|-------------------|------------------------------|---------|
+| Network Layer      | `network_layer_detection.py`   | ARP Spoofing, Deauth, Evil Twin, MAC Flood |
+| Internet Layer     | `internet_layer_detection.py`  | IP Spoofing, SYN Flood, UDP Flood, Ping Flood, Port Scan |
+| Transport Layer    | `transport_layer_detection.py` | SYN Flood, RST Flood, Port Scan, Connection Flood |
+| Application Layer  | `application_layer_detection.py` | DNS Spoofing, DNS Tunneling, XSS, SQLi, SSL Strip, Credential Theft, DoS |
+
+---
+
+## 📌 Notes
+
+- Must be run as **root** (`sudo`) due to packet sniffing.
+- Monitor interface must be enabled before script execution.
+- Scripts auto-create CSV logs with analysis.
+- Works best in isolated test environments (e.g., personal WiFi lab).
+
+---
+
+## 🤖 Author
+
+Made for research & educational use. Ensure compliance with your local cybersecurity laws before deploying on public networks.
