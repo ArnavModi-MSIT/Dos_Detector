@@ -39,7 +39,7 @@ Before running the scripts, you must enable monitor mode:
 
 ```bash
 sudo airmon-ng check kill              # Stop conflicting processes
-sudo airmon-ng start wlan1             # Start monitor mode (creates wlan1mon)
+sudo airmon-ng start wlan1             # Start monitor mode (creates wlan1mon , check your interface using iwconfig set accordingly)
 sudo airodump-ng wlan1mon              # Confirm the interface is working
 sudo iwconfig wlan1mon channel 9       # Set the correct WiFi channel (change '9' as needed)
 ```
