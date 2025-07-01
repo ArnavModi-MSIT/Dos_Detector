@@ -7,7 +7,7 @@
 INTERFACE="wlan0"                   # Your WiFi interface
 TARGET_IP="IP"           # Replace with your phone’s IP
 KALI_IP="IP"             # Replace with your Kali IP
-HOSTS_FILE="/home/kali/Codebase/attack_detection/hosts.txt"  # Temporary spoof hosts file
+HOSTS_FILE="YOUR FAKE DNS FILE PATH"  # Temporary spoof hosts file
 
 # 1. Enable IP forwarding
 echo "[+] Enabling IP forwarding..."
