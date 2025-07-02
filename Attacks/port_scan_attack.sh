@@ -3,7 +3,7 @@
 # Port Scan Script using netcat
 # ⚠️ Educational use only!
 
-TARGET_IP="103.211.18.5"   # Change to your target
+TARGET_IP="IP"   # Change to your target
 START_PORT=1
 END_PORT=1024
 
