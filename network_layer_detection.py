@@ -29,9 +29,10 @@ class NetworkLayerDetector:
         self.mac_activity = defaultdict(deque)  # MAC -> packet timestamps
         self.deauth_count = defaultdict(deque)  # Source -> deauth timestamps
         self.packet_count = 0
-        
+
         # ML model for anomaly detection
         self.ml_features = []
+        self.unique_macs_window = deque()   # (ts, src_mac) for last 5 s
         self.init_csv()
         
     def init_csv(self):
@@ -87,7 +88,7 @@ class NetworkLayerDetector:
         # If more than 5 deauth packets in 10 seconds, it's likely an attack
         deauth_rate = len(self.deauth_count[src_mac])
         if deauth_rate > 5:
-            confidence = min(0.6 + (deauth_rate * 0.05), 0.95)
+            confidence = min(0.7 + (deauth_rate * 0.05), 0.95)
             print(f"[DEAUTH ATTACK] {src_mac} sent {deauth_rate} deauth packets")
             return True, confidence
             
@@ -120,26 +121,26 @@ class NetworkLayerDetector:
             
         return False, 0
     
-    def detect_mac_flooding(self, src_mac):
-        """Detect MAC flooding based on activity rate"""
+    def detect_mac_flooding(self, pkt):
+        """Detect CAM‑table flooding (many *unique* MACs)."""
+        # Skip obvious management traffic – not relevant to CAM flooding
+        if pkt.haslayer(Dot11Deauth) or pkt.haslayer(Dot11Beacon):
+            return False, 0, 0
+
         current_time = time.time()
-        
-        # Track packet activity for this MAC
-        self.mac_activity[src_mac].append(current_time)
-        
-        # Remove old entries (older than 5 seconds)
-        while (self.mac_activity[src_mac] and 
-               current_time - self.mac_activity[src_mac][0] > 5):
-            self.mac_activity[src_mac].popleft()
-        
-        packet_rate = len(self.mac_activity[src_mac])
-        
-        # If more than 50 packets in 5 seconds, possible MAC flooding
-        if packet_rate > 50:
-            confidence = min(0.5 + (packet_rate * 0.01), 0.9)
-            return True, confidence, packet_rate
-            
-        return False, 0, packet_rate
+        src_mac = (pkt[Dot11].addr2 or "").lower()
+        # Track every src MAC seen in a 5‑second sliding window
+        self.unique_macs_window.append((current_time, src_mac))
+        while self.unique_macs_window and current_time - self.unique_macs_window[0][0] > 5:
+            self.unique_macs_window.popleft()
+
+        unique_src = {m for _, m in self.unique_macs_window if m}
+        unique_count = len(unique_src)
+
+        if unique_count > 100:                       # adjust threshold
+            confidence = min(0.5 + unique_count * 0.003, 0.9)
+            return True, confidence, unique_count
+        return False, 0, unique_count
     
     def extract_ml_features(self, pkt, src_mac, packet_rate):
         """Extract features for ML anomaly detection"""
@@ -208,7 +209,7 @@ class NetworkLayerDetector:
         arp_detected, arp_conf = self.detect_arp_spoofing(pkt)
         deauth_detected, deauth_conf = self.detect_deauth_attack(pkt)
         evil_twin_detected, evil_twin_conf = self.detect_evil_twin(pkt)
-        mac_flood_detected, mac_flood_conf, packet_rate = self.detect_mac_flooding(src_mac)
+        mac_flood_detected, mac_flood_conf, packet_rate = self.detect_mac_flooding(pkt)
         
         # Determine primary attack type and confidence
         attacks = [
