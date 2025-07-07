@@ -77,14 +77,15 @@ class WirelessAttackDetector:
         
         if protocol == 'ICMP':
             self.ping_count[src_ip].append(now)
-            if len(self.ping_count[src_ip]) > 50:  # 50 pings in 10 seconds
-                ping_flood = True
-        
+            while self.ping_count[src_ip] and now - self.ping_count[src_ip][0] > DETECTION_WINDOW:
+                self.ping_count[src_ip].popleft()
+            ping_flood = len(self.ping_count[src_ip]) > 10  # Lowered threshold for testing
+
         elif protocol == 'TCP-SYN':
             self.syn_count[src_ip].append(now)
             if len(self.syn_count[src_ip]) > 100:  # 100 SYN packets in 10 seconds
                 syn_flood = True
-        
+
         elif protocol == 'UDP':
             self.udp_count[src_ip].append(now)
             if len(self.udp_count[src_ip]) > 100:  # 100 UDP packets in 10 seconds
@@ -138,18 +139,17 @@ class WirelessAttackDetector:
     def process_packet(self, pkt):
         """Main packet processing function"""
         self.packet_count += 1
-        
-        if self.packet_count % 1000 == 0:
-            print(f"[INFO] Processed {self.packet_count} packets...")
-        
-        # Only process packets with IP layer and from our target MAC
-        if not (IP in pkt and Dot11 in pkt):
+
+        # Debug: print summary to verify ICMP packets are seen
+        # print(pkt.summary())
+
+        if IP not in pkt:
             return
-        
-        src_mac = pkt[Dot11].addr2
+
+        src_mac = pkt[Dot11].addr2 if Dot11 in pkt and hasattr(pkt[Dot11], "addr2") else None
         if not src_mac or src_mac != TARGET_MAC:
             return
-        
+
         # Extract basic packet info
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         src_ip = pkt[IP].src
@@ -160,7 +160,7 @@ class WirelessAttackDetector:
         # Determine protocol and extract relevant info
         protocol = "OTHER"
         sport = dport = tcp_flags = icmp_type = 0
-        
+
         if ICMP in pkt:
             protocol = "ICMP"
             icmp_type = pkt[ICMP].type
@@ -175,7 +175,7 @@ class WirelessAttackDetector:
             protocol = "UDP"
             sport = pkt[UDP].sport
             dport = pkt[UDP].dport
-        
+
         # Attack Detection
         ip_spoofing = self.detect_ip_spoofing(src_ip, src_mac, ttl)
         ping_flood, syn_flood, udp_flood = self.detect_floods(src_ip, protocol)
@@ -275,9 +275,9 @@ class WirelessAttackDetector:
         print(f"[*] Monitor Interface: {MONITOR_INTERFACE}")
         print(f"[*] Results will be saved to: {self.csv_file}")
         print("[*] Press Ctrl+C to stop and analyze data\n")
-        
+
         try:
-            sniff(iface=MONITOR_INTERFACE, prn=self.process_packet, store=0)
+            sniff(iface=MONITOR_INTERFACE, filter="icmp", prn=self.process_packet, store=0)
         except KeyboardInterrupt:
             print("\n[*] Stopping detection...")
             self.run_ml_analysis()
