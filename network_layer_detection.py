@@ -16,8 +16,8 @@ from datetime import datetime
 class NetworkLayerDetector:
     def __init__(self):
         # Configuration
-        self.interface = input("interface name eg wlan1mon : ") # Monitor interface
-        self.target_mac = input("Enter mac Id : ")  # Target device MAC
+        self.interface = "wlan1mon"
+        self.target_mac = "ba:1f:d8:1d:73:eb"
         
         # Create unique CSV filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -137,7 +137,7 @@ class NetworkLayerDetector:
         unique_src = {m for _, m in self.unique_macs_window if m}
         unique_count = len(unique_src)
 
-        if unique_count > 100:                       # adjust threshold
+        if unique_count > 30:                       # adjust threshold
             confidence = min(0.5 + unique_count * 0.003, 0.9)
             return True, confidence, unique_count
         return False, 0, unique_count
@@ -188,53 +188,58 @@ class NetworkLayerDetector:
     def process_packet(self, pkt):
         """Main packet processing function"""
         self.packet_count += 1
-        
+
         if self.packet_count % 500 == 0:
             print(f"[INFO] Processed {self.packet_count} packets...")
-        
+
         # Only process 802.11 packets
         if not pkt.haslayer(Dot11):
             return
-        
+
         src_mac = pkt[Dot11].addr2.lower() if pkt[Dot11].addr2 else ""
         dst_mac = pkt[Dot11].addr1.lower() if pkt[Dot11].addr1 else ""
-        
-        # Filter by target MAC (either source or destination)
-        if src_mac != self.target_mac and dst_mac != self.target_mac:
-            return
-        
+
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        
-        # Run attack detection
-        arp_detected, arp_conf = self.detect_arp_spoofing(pkt)
-        deauth_detected, deauth_conf = self.detect_deauth_attack(pkt)
-        evil_twin_detected, evil_twin_conf = self.detect_evil_twin(pkt)
+
+        # Always detect MAC flood first (before filtering)
         mac_flood_detected, mac_flood_conf, packet_rate = self.detect_mac_flooding(pkt)
-        
-        # Determine primary attack type and confidence
+
+        # Filter other attacks by target MAC
+        is_related_to_target = src_mac == self.target_mac or dst_mac == self.target_mac
+        if not is_related_to_target and not mac_flood_detected:
+            return
+
+        # Run other attack detections only if packet is from/to target
+        arp_detected, arp_conf = False, 0
+        deauth_detected, deauth_conf = False, 0
+        evil_twin_detected, evil_twin_conf = False, 0
+
+        if is_related_to_target:
+            arp_detected, arp_conf = self.detect_arp_spoofing(pkt)
+            deauth_detected, deauth_conf = self.detect_deauth_attack(pkt)
+            evil_twin_detected, evil_twin_conf = self.detect_evil_twin(pkt)
+
+        # Determine primary attack
         attacks = [
             ("ARP_SPOOFING", arp_detected, arp_conf),
             ("DEAUTH_ATTACK", deauth_detected, deauth_conf),
             ("EVIL_TWIN", evil_twin_detected, evil_twin_conf),
-            ("MAC_FLOODING", mac_flood_detected, mac_flood_conf)
+            ("MAC_FLOODING", mac_flood_detected, mac_flood_conf),
         ]
-        
         primary_attack = "NORMAL"
         max_confidence = 0
-        for attack_name, detected, confidence in attacks:
-            if detected and confidence > max_confidence:
-                primary_attack = attack_name
-                max_confidence = confidence
-        
-        # Extract features for ML
+        for name, detected, conf in attacks:
+            if detected and conf > max_confidence:
+                primary_attack = name
+                max_confidence = conf
+
+        # Extract ML features
         ml_features = self.extract_ml_features(pkt, src_mac, packet_rate)
         self.ml_features.append(ml_features)
-        
-        # Get additional packet info
+
         rssi = int(getattr(pkt, 'dBm_AntSignal', 0) or 0)
         channel = self.get_channel(pkt)
-        
-        # Prepare data for CSV
+
         packet_data = {
             'timestamp': timestamp,
             'src_mac': src_mac,
@@ -248,11 +253,10 @@ class NetworkLayerDetector:
             'rssi': rssi,
             'channel': channel,
             'packet_rate': packet_rate,
-            'anomaly_score': 0,  # Will be updated later
-            'is_anomaly': 0      # Will be updated later
+            'anomaly_score': 0,
+            'is_anomaly': 0
         }
-        
-        # Save to CSV (will update with ML results periodically)
+
         with open(self.csv_file, 'a', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=packet_data.keys())
             writer.writerow(packet_data)
