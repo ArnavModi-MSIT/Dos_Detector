@@ -17,7 +17,7 @@ class NetworkLayerDetector:
     def __init__(self):
         # Configuration
         self.interface = "wlan1mon"
-        self.target_mac = "ba:1f:d8:1d:73:eb"
+        self.target_mac = "Your MAC_ID"
         
         # Create unique CSV filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
