@@ -97,7 +97,7 @@ Each script will generate its own `.csv` file logging:
 | Layer              | Script                       | Detects |
 |-------------------|------------------------------|---------|
 | Network Layer      | `network_layer_detection.py`   | ARP Spoofing, Deauth, Evil Twin, MAC Flood |
-| Internet Layer     | `internet_layer_detection.py`  | IP Spoofing, SYN Flood, UDP Flood, Ping Flood, Port Scan |
+| Internet Layer     | `internet_layer_detection.py`  | IP Spoofing, UDP Flood, Ping Flood|
 | Transport Layer    | `transport_layer_detection.py` | SYN Flood, RST Flood, Port Scan, Connection Flood |
 | Application Layer  | `application_layer_detection.py` | DNS Spoofing, DNS Tunneling, XSS, SQLi, SSL Strip, Credential Theft, DoS |
 
