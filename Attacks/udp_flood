@@ -1,0 +1,1 @@
+sudo hping3 --udp -p 53 -d 120 --flood ip_address
