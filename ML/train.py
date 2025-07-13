@@ -5,7 +5,6 @@ Combined Layer-Based Attack Detection Model Trainer
 This script trains separate models for each OSI layer (Network, Internet, Transport, Application)
 and combines them into one `.pkl` file using Gradient Boosting for improved accuracy.
 
-Author: Arnav Modi
 """
 
 import pandas as pd
