@@ -66,13 +66,14 @@ Combines detection methods:
    git clone https://github.com/yourusername/network-security-detection.git
    cd network-security-detection
 
-2.Install dependencies:
+2. Install dependencies:
 pip install -r requirements.txt
 
-3.Put your wireless interface in monitor mode (for wireless detection):
+3. Put your wireless interface in monitor mode (for wireless detection):
 sudo airmon-ng start wlan1
 
-#Configuration
+Configuration
+
 Edit the following parameters in each detector file:
 
     interface: Set to your monitoring interface (typically wlan1mon for monitor mode)
@@ -87,7 +88,8 @@ If you want to retrain the machine learning models:
 python3 train_model.py
 This requires collected attack data in the CSV files.
 
-#Usage
+Usage
+
 Run individual detectors:
 # Network layer (wireless)
 sudo python3 network_layer_detection.py
@@ -117,7 +119,8 @@ All detectors save results to CSV files:
 
 The analyzer provides real-time console output and saves to.
 
-#Troubleshooting
+Troubleshooting
+
 Common Issues:
 
     Permission denied: Run with sudo
@@ -128,9 +131,9 @@ Common Issues:
 
     ML model errors: Retrain models with train_model.py
 
-#Contributing
+Contributing
 Pull requests are welcome. For major changes, please open an issue first.
 
-#License
+License
 
 MIT
