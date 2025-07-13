@@ -166,7 +166,6 @@ We welcome community contributions!
 4. Push to your fork  
 5. Open a pull request
 
-Please follow PEP-8 guidelines and document your code.
 
 ---
 
