@@ -30,7 +30,7 @@ import ipaddress
 INTERFACE = "wlan1"               # Network interface to monitor
 OUTPUT_CSV = "transport_layer_attacks.csv"  # Output file for attack logs
 WINDOW_SEC = 1                    # Detection window size in seconds
-TARGET_IP = "192.168.0.139"       # Optional target IP to filter for
+TARGET_IP = ""       # Optional target IP to filter for
 
 # === Detection Thresholds ===
 THRESH_SYN_FLOOD = 150    # SYN packets/sec to trigger flood detection
