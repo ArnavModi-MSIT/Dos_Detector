@@ -1,5 +1,26 @@
 #!/usr/bin/env python3
 
+"""
+Mobile Wireless Attack Detection System
+=======================================
+This script monitors network traffic on a specified interface to detect various 
+types of application-layer attacks targeting a specific mobile device (identified by MAC address).
+
+Key Features:
+- DNS Spoofing detection
+- DNS Tunneling detection using machine learning
+- HTTP-based attack detection (SQLi, XSS)
+- Credential sniffing detection
+- DoS attack detection
+- Logs all findings to a CSV file
+
+Usage:
+1. Put your wireless interface in monitor mode first (e.g., 'sudo airmon-ng start wlan1')
+2. Run this script with Python 3
+3. Enter the target device's MAC address when prompted
+4. Enter the monitor interface name (e.g., 'wlan1mon')
+"""
+
 import os
 import csv
 import re
@@ -13,34 +34,54 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # === CONFIGURATION ===
-TARGET_MAC = input("Enter mac Id : ")  # Replace with target mobile device MAC
-MONITOR_INTERFACE = input("interface name eg wlan1mon : ")    # Your monitor mode interface
-CSV_FILE = "application_layer_attack.csv"
-WINDOW_SIZE = 50  # For ML analysis
+# Prompt user for target device MAC and monitoring interface
+TARGET_MAC = input("Enter target device MAC address (e.g., aa:bb:cc:dd:ee:ff): ").strip()
+MONITOR_INTERFACE = input("Enter monitor interface name (e.g., wlan1mon): ").strip()
 
-# CSV Headers
+# Output CSV file name
+CSV_FILE = "application_layer_attack.csv"
+
+# Window size for machine learning analysis (number of packets to analyze together)
+WINDOW_SIZE = 50
+
+# CSV file headers
 FIELDNAMES = [
     "timestamp", "attack_type", "confidence", "src_ip", "dst_ip", 
     "src_mac", "dst_mac", "details", "payload_size", "anomaly_score"
 ]
 
 # === GLOBAL VARIABLES ===
-dns_queries = deque(maxlen=WINDOW_SIZE)
-http_requests = deque(maxlen=WINDOW_SIZE)
-tcp_connections = defaultdict(list)
+# Deques to store recent network activity for analysis
+dns_queries = deque(maxlen=WINDOW_SIZE)      # Stores recent DNS queries
+http_requests = deque(maxlen=WINDOW_SIZE)    # Stores recent HTTP requests
+tcp_connections = defaultdict(list)          # Tracks TCP connections per IP
 
-# === CSV INITIALIZATION ===
+# === CSV FILE SETUP ===
 def init_csv():
+    """Initialize the CSV log file with headers if it doesn't exist"""
     if not os.path.exists(CSV_FILE):
         with open(CSV_FILE, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
             writer.writeheader()
-        print(f"[+] Created new CSV file: {CSV_FILE}")
+        print(f"[+] Created new CSV log file: {CSV_FILE}")
     else:
-        print(f"[+] Using existing CSV file: {CSV_FILE}")
+        print(f"[+] Using existing CSV log file: {CSV_FILE}")
 
 def log_attack(attack_type, confidence, src_ip="", dst_ip="", src_mac="", dst_mac="", 
                details="", payload_size=0, anomaly_score=""):
+    """
+    Log detected attacks to the CSV file
+    Args:
+        attack_type: Type of attack detected (e.g., "DNS Spoofing")
+        confidence: Confidence level ("Low", "Medium", "High")
+        src_ip: Source IP address
+        dst_ip: Destination IP address
+        src_mac: Source MAC address
+        dst_mac: Destination MAC address
+        details: Additional details about the attack
+        payload_size: Size of the suspicious payload
+        anomaly_score: Machine learning anomaly score (if applicable)
+    """
     data = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "attack_type": attack_type,
@@ -58,22 +99,26 @@ def log_attack(attack_type, confidence, src_ip="", dst_ip="", src_mac="", dst_ma
         writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
         writer.writerow(data)
     
-    print(f"[!] {attack_type} detected - Confidence: {confidence}")
+    print(f"[!] ALERT: {attack_type} detected - Confidence: {confidence}")
 
 # === ATTACK DETECTION FUNCTIONS ===
 
 def detect_dns_spoofing(pkt):
-    """Detect DNS response spoofing"""
+    """Detect DNS response spoofing attempts"""
+    # Check if packet is a DNS response with answers
     if pkt.haslayer(DNS) and pkt[DNS].qr == 1 and pkt[DNS].ancount > 0:
         try:
             query_name = pkt[DNS].qd.qname.decode().rstrip('.')
             response_ip = str(pkt[DNS].an.rdata)
             
-            # Check for suspicious responses
+            # List of commonly spoofed domains
             suspicious_domains = ['google.com', 'facebook.com', 'instagram.com', 'whatsapp.com']
+            
+            # Private IP ranges that shouldn't be in DNS responses for public domains
             private_ips = ['192.168.', '10.', '172.16.', '127.']
             
             confidence = "Medium"
+            # Check if response is for a sensitive domain pointing to a private IP
             if any(domain in query_name.lower() for domain in suspicious_domains):
                 if any(response_ip.startswith(ip) for ip in private_ips):
                     confidence = "High"
@@ -83,35 +128,37 @@ def detect_dns_spoofing(pkt):
                       src_mac=pkt[Ether].src, dst_mac=pkt[Ether].dst,
                       details=f"Domain: {query_name}, Response: {response_ip}")
         except:
-            pass
+            pass  # Skip malformed DNS packets
 
 def detect_dns_tunneling(pkt):
-    """Detect DNS tunneling using ML"""
+    """Detect DNS tunneling using machine learning anomaly detection"""
+    # Check if packet contains a DNS query
     if pkt.haslayer(DNSQR):
         try:
             query = pkt[DNSQR].qname.decode().rstrip('.')
             query_len = len(query)
             subdomain_count = query.count('.')
             
-            # Calculate entropy
+            # Calculate entropy (randomness) of the query
             if len(query) > 0:
                 entropy = -sum((query.count(c)/len(query)) * np.log2(query.count(c)/len(query)) 
                               for c in set(query) if query.count(c) > 0)
             else:
                 entropy = 0
             
-            # Add to analysis window
+            # Add query features to analysis window
             dns_queries.append([query_len, subdomain_count, entropy])
             
             # Run ML analysis when we have enough samples
             if len(dns_queries) >= 20:
                 try:
+                    # Use Isolation Forest for anomaly detection
                     model = IsolationForest(contamination=0.1, random_state=42)
                     model.fit(list(dns_queries))
                     scores = model.decision_function(list(dns_queries))
                     predictions = model.predict(list(dns_queries))
                     
-                    # Check latest query
+                    # Check if latest query is anomalous
                     if predictions[-1] == -1:  # Anomaly detected
                         score = scores[-1]
                         confidence = "High" if score < -0.5 else "Medium"
@@ -122,29 +169,30 @@ def detect_dns_tunneling(pkt):
                                   details=f"Suspicious query: {query}",
                                   anomaly_score=round(score, 4))
                 except:
-                    pass
+                    pass  # Skip ML errors
         except:
-            pass
+            pass  # Skip malformed DNS queries
 
 def detect_http_attacks(pkt):
-    """Detect HTTP-based attacks"""
+    """Detect HTTP-based attacks like SQL injection and XSS"""
+    # Check for TCP packets with raw payload (likely HTTP)
     if pkt.haslayer(Raw) and pkt.haslayer(TCP):
         try:
             payload = pkt[Raw].load.decode('utf-8', errors='ignore')
             
-            # SQL Injection patterns
+            # Common SQL injection patterns
             sql_patterns = [
                 r"union\s+select", r"drop\s+table", r"insert\s+into",
                 r"'\s*or\s*'1'\s*=\s*'1", r"admin'\s*--", r"1'\s*or\s*'1'\s*=\s*'1"
             ]
             
-            # XSS patterns
+            # Common XSS patterns
             xss_patterns = [
                 r"<script.*?>.*?</script>", r"javascript:", r"onload\s*=",
                 r"onerror\s*=", r"alert\s*\(", r"document\.cookie"
             ]
             
-            # Check for SQL injection
+            # Check for SQL injection patterns
             for pattern in sql_patterns:
                 if re.search(pattern, payload, re.IGNORECASE):
                     log_attack("SQL Injection", "High",
@@ -154,7 +202,7 @@ def detect_http_attacks(pkt):
                               payload_size=len(payload))
                     return
             
-            # Check for XSS
+            # Check for XSS patterns
             for pattern in xss_patterns:
                 if re.search(pattern, payload, re.IGNORECASE):
                     log_attack("XSS Attack", "High",
@@ -164,7 +212,7 @@ def detect_http_attacks(pkt):
                               payload_size=len(payload))
                     return
             
-            # SSL Stripping detection
+            # Check for SSL stripping (HTTP to HTTPS downgrade)
             if "HTTP/1.1 30" in payload and "Location:" in payload:
                 location_match = re.search(r"Location:\s*(http://[^\r\n]+)", payload)
                 if location_match:
@@ -173,15 +221,15 @@ def detect_http_attacks(pkt):
                               src_mac=pkt[Ether].src, dst_mac=pkt[Ether].dst,
                               details=f"Redirect to: {location_match.group(1)}")
         except:
-            pass
+            pass  # Skip malformed packets
 
 def detect_credential_sniffing(pkt):
-    """Detect credential transmission in plaintext"""
+    """Detect plaintext credential transmission"""
     if pkt.haslayer(Raw) and pkt.haslayer(TCP):
         try:
             payload = pkt[Raw].load.decode('utf-8', errors='ignore')
             
-            # FTP credentials
+            # FTP credentials (port 21)
             if pkt[TCP].dport == 21 or pkt[TCP].sport == 21:
                 if "USER " in payload or "PASS " in payload:
                     user_match = re.search(r"USER\s+(\S+)", payload)
@@ -198,14 +246,14 @@ def detect_credential_sniffing(pkt):
                               src_mac=pkt[Ether].src, dst_mac=pkt[Ether].dst,
                               details=details.strip())
             
-            # HTTP Basic Auth
+            # HTTP Basic Authentication
             if "Authorization: Basic" in payload:
                 log_attack("HTTP Basic Auth Sniffing", "High",
                           src_ip=pkt[IP].src, dst_ip=pkt[IP].dst,
                           src_mac=pkt[Ether].src, dst_mac=pkt[Ether].dst,
                           details="Basic authentication detected")
             
-            # Form-based login attempts
+            # Web form logins
             login_patterns = [
                 r"password\s*=\s*[^&\s]+", r"passwd\s*=\s*[^&\s]+",
                 r"username\s*=\s*[^&\s]+", r"email\s*=\s*[^&\s]+"
@@ -219,15 +267,15 @@ def detect_credential_sniffing(pkt):
                               details="Login form data detected")
                     break
         except:
-            pass
+            pass  # Skip malformed packets
 
 def detect_dos_attacks(pkt):
-    """Detect potential DoS attacks using connection tracking"""
+    """Detect potential DoS attacks using connection rate analysis"""
     if pkt.haslayer(TCP):
         src_ip = pkt[IP].src
         dst_ip = pkt[IP].dst
         
-        # Track connections per source IP
+        # Track connection timestamps per source IP
         current_time = time.time()
         tcp_connections[src_ip].append(current_time)
         
@@ -235,8 +283,8 @@ def detect_dos_attacks(pkt):
         tcp_connections[src_ip] = [t for t in tcp_connections[src_ip] 
                                   if current_time - t < 10]
         
-        # Check for excessive connections
-        if len(tcp_connections[src_ip]) > 20:  # Threshold
+        # Check for excessive connection rate (>20 connections in 10 seconds)
+        if len(tcp_connections[src_ip]) > 20:
             log_attack("Potential DoS Attack", "Medium",
                       src_ip=src_ip, dst_ip=dst_ip,
                       src_mac=pkt[Ether].src, dst_mac=pkt[Ether].dst,
@@ -244,18 +292,18 @@ def detect_dos_attacks(pkt):
 
 # === MAIN PACKET HANDLER ===
 def packet_handler(pkt):
-    """Main packet processing function"""
+    """Main packet processing function that routes to specific detectors"""
     try:
-        # Filter packets from/to target device
+        # Filter packets from/to our target device only
         if pkt.haslayer(Ether):
             if TARGET_MAC not in [pkt[Ether].src, pkt[Ether].dst]:
                 return
         
-        # Skip if no IP layer
+        # Skip non-IP packets
         if not pkt.haslayer(IP):
             return
         
-        # Apply detection functions
+        # Route to appropriate detection functions
         if pkt.haslayer(DNS):
             detect_dns_spoofing(pkt)
             if pkt.haslayer(DNSQR):
@@ -267,10 +315,11 @@ def packet_handler(pkt):
             detect_dos_attacks(pkt)
     
     except Exception as e:
-        pass  # Silently handle packet processing errors
+        pass  # Silently handle any packet processing errors
 
 # === MAIN EXECUTION ===
 def main():
+    # Display banner
     print("=" * 60)
     print("Mobile Wireless Attack Detection System")
     print("=" * 60)
@@ -278,16 +327,19 @@ def main():
     print(f"Monitor Interface: {MONITOR_INTERFACE}")
     print(f"Log File: {CSV_FILE}")
     print("=" * 60)
+    print("Detecting: DNS spoofing, DNS tunneling, SQLi, XSS,")
+    print("credential sniffing, DoS attacks, SSL stripping")
+    print("=" * 60)
     
-    # Initialize CSV
+    # Initialize CSV log file
     init_csv()
     
-    # Check if interface exists
+    # Check if interface exists and start capture
     try:
-        # Start packet capture
         print(f"[*] Starting packet capture on {MONITOR_INTERFACE}...")
-        print("[*] Press Ctrl+C to stop")
+        print("[*] Press Ctrl+C to stop monitoring")
         
+        # Start sniffing packets (no storage, process in real-time)
         sniff(iface=MONITOR_INTERFACE, prn=packet_handler, store=0)
         
     except KeyboardInterrupt:
@@ -296,6 +348,7 @@ def main():
         print(f"[!] Error: {e}")
         print("[!] Make sure your interface is in monitor mode")
         print("[!] Try: sudo airmon-ng start wlan1")
+        print("[!] Then use the monitor interface (e.g., wlan1mon)")
 
 if __name__ == "__main__":
     main()
