@@ -90,11 +90,11 @@ Edit configuration in each detector file:
 ## Usage
 
 Basic commands:
--sudo python3 network_layer_detection.py
--sudo python3 internet_layer_detection.py
--sudo python3 transport_layer_detection.py
--sudo python3 application_layer_detection.py
--sudo python3 analyser.py
+      sudo python3 network_layer_detection.py
+      -sudo python3 internet_layer_detection.py
+      -sudo python3 transport_layer_detection.py
+      -sudo python3 application_layer_detection.py
+      -sudo python3 analyser.py
 
 Background operation:
 nohup sudo python3 analyser.py > detection.log 2>&1 &
