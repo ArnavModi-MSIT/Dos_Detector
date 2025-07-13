@@ -1,131 +1,192 @@
-# Network Security Detection System
+🛡️ Network Security Detection System
 
-[![Network Security](https://img.shields.io/badge/Network-Security-blue)]() 
-[![Python](https://img.shields.io/badge/Python-3.8+-yellow)]() 
-[![Scapy](https://img.shields.io/badge/Scapy-Packet%20Analysis-green)]()
-[![License](https://img.shields.io/badge/License-MIT-green)]()
+Network Security
+Python
+Scapy
+License
 
-A comprehensive multi-layer network security detection system that monitors and detects various types of attacks across OSI model layers. Combines rule-based detection with machine learning for advanced threat identification.
+A comprehensive, multi-layered intrusion detection system (IDS) designed to monitor and detect a wide range of network-based attacks across the OSI model. This hybrid system leverages both rule-based heuristics and machine learning models for real-time, high-confidence threat detection.
+📚 Table of Contents
 
-## Table of Contents
-- Features
-- Detection Modules
-- Setup Instructions
-- Usage
-- Output
-- Troubleshooting
-- Contributing
-- License
+    Features
 
-## Features
+    Detection Modules
 
-- Multi-layer detection: Covers attacks across all OSI model layers
-- Real-time monitoring: Detects attacks as they occur
-- Hybrid detection: Combines rule-based and machine learning approaches
-- Comprehensive logging: Stores all detected attacks in structured CSV files
-- Lightweight design: Efficient packet processing with minimal overhead
-- Wireless support: Specialized detection for WiFi-specific attacks
+    Installation & Setup
 
-## Detectors Overview
+    Usage
 
-1. Network Layer Detector (network_layer_detection.py)
-   - ARP Spoofing
-   - Deauthentication Attacks
-   - Evil Twin
-   - MAC Flooding
+    Output
 
-2. Internet Layer Detector (internet_layer_detection.py)
-   - IP Spoofing
-   - Ping Flood      
-   - Port Scanning
+    Troubleshooting
 
-3. Transport Layer Detector (transport_layer_detection.py)
-   - SYN Flood
-   - RST Flood
-   - UDP Flood
-   - Connection Flood
-   - Port Scanning
+    Contributing
 
-4. Application Layer Detector (application_layer_detection.py)
-   - DNS Spoofing
-   - DNS Tunneling
-   - XSS Attacks
-   - SQL Injection
-   - SSL Stripping
-   - Credential Theft
+    License
+
+🚀 Features
+
+    ✅ Multi-layered Detection: Monitors attacks across Network, Internet, Transport, and Application layers
+
+    📡 Real-Time Monitoring: Live packet inspection and attack detection
+
+    🧠 Hybrid Analysis: Combines rule-based signatures with ML-based classification
+
+    🗂️ Structured Logging: Stores detections in clean, CSV-formatted logs
+
+    🧩 Modular Design: Independent detection modules for each layer
+
+    📶 Wi-Fi Support: Specialized detection for wireless-specific attacks
+
+    ⚡ Lightweight: Optimized for low overhead and fast packet processing
+
+🔍 Detection Modules
+
+Each layer has a dedicated detection script designed to catch specific threats:
+1. Network Layer (network_layer_detection.py)
+
+    ARP Spoofing
+
+    Deauthentication Attacks
+
+    Evil Twin Access Points
+
+    MAC Flooding
+
+2. Internet Layer (internet_layer_detection.py)
+
+    IP Spoofing
+
+    Ping Flooding
+
+    Port Scanning
+
+3. Transport Layer (transport_layer_detection.py)
+
+    SYN Flood
+
+    RST Flood
+
+    UDP Flood
+
+    Connection Flood
+
+    TCP Port Scan
+
+4. Application Layer (application_layer_detection.py)
+
+    DNS Spoofing
+
+    DNS Tunneling
+
+    SQL Injection
+
+    Cross-Site Scripting (XSS)
+
+    SSL Stripping
+
+    Credential Theft
 
 5. Analyzer (analyser.py)
-   - Rule-based detection
-   - Machine learning analysis
-   - Real-time alerts
-   - Dual mode support
 
-## Setup Instructions
+    Real-time ML-based predictions
 
-### Prerequisites
-- Python 3.8+
-- Linux system
-- Root privileges
-- Wireless card with monitor mode support
-- Recommended: 4GB+ RAM
+    Rule-based fallback detection
 
-### Installation
-1. Clone the repository:
-   git clone https://github.com/yourusername/network-security-detection.git
-   cd network-security-detection
+    Custom model support (combined_rf_model.pkl)
 
-2. Install dependencies:
-   pip install -r requirements.txt
+    Dual-mode analysis (offline/online)
 
-3. Configure monitor mode:
-   sudo airmon-ng check kill
-   sudo airmon-ng start wlan0
+⚙️ Installation & Setup
+🔧 Prerequisites
 
-### Configuration
-Edit configuration in each detector file:
-- Set monitoring interface (e.g., wlan0mon)
-- Configure target MAC/IP
-- Adjust detection thresholds
+    Python 3.8+
 
-## Usage
+    Linux (recommended: Kali Linux or Ubuntu)
 
-Basic commands:
-      sudo python3 network_layer_detection.py
-      -sudo python3 internet_layer_detection.py
-      -sudo python3 transport_layer_detection.py
-      -sudo python3 application_layer_detection.py
-      -sudo python3 analyser.py
+    Root privileges (sudo)
 
-Background operation:
+    Wireless card supporting monitor mode
+
+    Minimum 4GB RAM recommended
+
+📦 Installation
+
+# Clone the repository
+git clone https://github.com/yourusername/network-security-detection.git
+cd network-security-detection
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+📡 Enable Monitor Mode
+
+sudo airmon-ng check kill
+sudo airmon-ng start wlan0
+
+🔧 Configuration
+
+Edit each detection script to:
+
+    Set your monitoring interface (e.g., wlan0mon)
+
+    Add target MAC/IP filters if needed
+
+    Adjust thresholds and detection rules as needed
+
+🧪 Usage
+🎮 Basic Commands
+
+sudo python3 network_layer_detection.py
+sudo python3 internet_layer_detection.py
+sudo python3 transport_layer_detection.py
+sudo python3 application_layer_detection.py
+sudo python3 analyser.py
+
+🧭 Run in Background
+
 nohup sudo python3 analyser.py > detection.log 2>&1 &
 
-## Output
+📁 Output
 
-CSV output files:
-- network_layer_attacks.csv
-- internet_layer_attacks.csv
-- transport_layer_attacks.csv
-- application_layer_attacks.csv
-- combined_analysis_report.csv
+All detection modules output CSV files for post-analysis and logging:
 
-## Troubleshooting
+    network_layer_attacks.csv
 
-Common Issues:
-1. Permission denied → Use sudo
-2. Interface not found → Check with iwconfig
-3. No packets captured → Verify monitor mode
-4. ML model errors → Retrain models
-5. Dependency errors → Reinstall requirements
+    internet_layer_attacks.csv
 
-## Contributing
+    transport_layer_attacks.csv
 
-Contribution steps:
-1. Fork the repository
-2. Create feature branch
-3. Commit changes
-4. Push to branch
-5. Open Pull Request
+    application_layer_attacks.csv
 
-## License
+    combined_analysis_report.csv (from analyser)
 
-MIT License
+Models and encoders are saved in:
+
+    combined_rf_model.pkl
+
+🛠️ Troubleshooting
+Issue	Solution
+Permission denied	Run with sudo
+Interface not found	Use iwconfig to confirm interface name
+No packets captured	Ensure monitor mode is active
+ML model error	Retrain model using model_trainer.py
+Dependency errors	Reinstall using pip install -r requirements.txt
+🤝 Contributing
+
+We welcome community contributions!
+
+    Fork the repository
+
+    Create a feature branch
+
+    Commit your changes
+
+    Push to your fork
+
+    Open a pull request
+
+Please follow PEP-8 guidelines and document your code.
+📄 License
+
+This project is licensed under the MIT License — see the LICENSE file for details.
