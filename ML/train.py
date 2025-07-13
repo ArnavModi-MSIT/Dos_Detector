@@ -4,7 +4,7 @@
 Multi-Layer Network Attack Classifier Trainer
 ============================================
 
-Trains Random Forest classifiers to detect attacks at different network layers:
+Trains Gradient Booster to detect attacks at different network layers:
 1. Network Layer (MAC/Datalink)
 2. Internet Layer (IP)
 3. Transport Layer (TCP/UDP)
@@ -13,7 +13,7 @@ Trains Random Forest classifiers to detect attacks at different network layers:
 For each layer:
 - Loads the training dataset
 - Preprocesses features
-- Trains a Random Forest classifier
+- Trains a Gradient Booster classifier
 - Evaluates performance
 - Saves the trained models with their encoders
 
@@ -22,7 +22,7 @@ Output: Single .pkl file containing all models and encoders
 
 import pandas as pd
 import joblib
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, accuracy_score
@@ -68,10 +68,8 @@ def train_model(df, label_column, drop_columns, name, encode_labels=True):
     )
 
     # Initialize and train Random Forest
-    model = RandomForestClassifier(
-        n_estimators=100,  # Number of decision trees
-        random_state=42    # Fixed seed
-    )
+    model = GradientBoostingClassifier(n_estimators=100, random_state=42)
+
     model.fit(X_train, y_train)
 
     # Evaluate model performance
