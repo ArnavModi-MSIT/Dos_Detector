@@ -172,4 +172,4 @@ Please follow PEP-8 guidelines and document your code.
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** 
