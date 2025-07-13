@@ -36,14 +36,13 @@ A comprehensive multi-layer network security detection system that monitors and 
 
 2. Internet Layer Detector (internet_layer_detection.py)
    - IP Spoofing
-   - Ping Flood
-   - SYN Flood
-   - UDP Flood
+   - Ping Flood      
    - Port Scanning
 
 3. Transport Layer Detector (transport_layer_detection.py)
    - SYN Flood
    - RST Flood
+   - UDP Flood
    - Connection Flood
    - Port Scanning
 
