@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 
 """
-Enhanced Basic Drone Attack Detector - 5 Major Attacks
-=====================================================
-Detects: Command Flooding, GPS Spoofing, Video Hijacking, MQTT Flooding, Wi-Fi Deauth
+Drone Attack Detector - 5 Major Attacks
+=======================================
+
+Detects drone-specific network attacks in real-time:
+- Command Flooding, GPS Spoofing, Video Hijacking, MQTT Flooding, Wi-Fi Deauth
+
+Requirements: Python 3.7+, Scapy, Root privileges
+Usage: sudo python3 drone_attack_detector.py
+Output: CSV file with attack data for ML analysis
+
+Educational/Research use only. Use responsibly.
 """
 
 from scapy.all import sniff, IP, UDP, TCP, Raw, Dot11
@@ -13,25 +21,27 @@ import time
 from datetime import datetime
 
 class Enhanced5AttackDetector:
+    """Main drone attack detector for 5 attack types"""
+    
     def __init__(self):
-        """Initialize detector for 5 major drone attacks"""
+        """Initialize detector with default configuration"""
         self.csv_file = "network_layer_attacks.csv"
-        self.drone_ip = "IP"
+        self.drone_ip = "IP"  # TODO: Set your drone IP
         
-        # Critical drone ports
+        # Drone ports
         self.mavlink_port = 5760     # MAVLink commands
         self.video_port = 554        # Video stream  
         self.mqtt_port = 1883        # MQTT messages
         self.http_port = 8080        # Drone web interface
         
-        # Attack counters
+        # Attack tracking
         self.command_counts = defaultdict(list)
         self.mqtt_counts = defaultdict(list)
         self.deauth_counts = defaultdict(list)
         self.gps_positions = []
         self.video_streams = defaultdict(dict)
         
-        # Simple thresholds
+        # Thresholds (adjust as needed)
         self.command_flood_limit = 15    # Commands per 5 seconds
         self.mqtt_flood_limit = 25       # MQTT messages per 5 seconds
         self.deauth_limit = 10           # Deauth frames per 5 seconds
@@ -45,7 +55,7 @@ class Enhanced5AttackDetector:
         self.init_csv()
     
     def init_csv(self):
-        """Create CSV with features for 5 attacks"""
+        """Create CSV file with attack data headers"""
         headers = [
             'timestamp', 'src_ip', 'dst_ip', 'port', 'protocol',
             'attack_type', 'severity', 'packet_size', 'attack_details'
@@ -57,7 +67,6 @@ class Enhanced5AttackDetector:
     
     def is_drone_traffic(self, pkt):
         """Check if packet is drone-related"""
-        # Check for IP layer
         if pkt.haslayer(IP):
             involves_drone = (pkt[IP].src == self.drone_ip or pkt[IP].dst == self.drone_ip)
             
@@ -66,24 +75,22 @@ class Enhanced5AttackDetector:
                 critical_port = port in [self.mavlink_port, self.video_port, self.mqtt_port, self.http_port]
                 return involves_drone or critical_port
         
-        # Check for Wi-Fi frames (802.11)
+        # Monitor Wi-Fi frames for deauth attacks
         if pkt.haslayer(Dot11):
             return True
             
         return False
     
     def detect_command_flood(self, pkt):
-        """Attack 1: MAVLink Command Flooding"""
+        """Detect MAVLink command flooding attacks"""
         if not pkt.haslayer(UDP) or pkt[UDP].dport != self.mavlink_port:
             return False, 0, ""
             
         current_time = time.time()
         src_ip = pkt[IP].src
         
-        # Track command rate
+        # Track command rate in 5-second window
         self.command_counts[src_ip].append(current_time)
-        
-        # Keep only last 5 seconds
         self.command_counts[src_ip] = [
             t for t in self.command_counts[src_ip] 
             if current_time - t <= 5
@@ -98,30 +105,27 @@ class Enhanced5AttackDetector:
         return False, 0, ""
     
     def detect_gps_spoof(self, pkt):
-        """Attack 2: GPS Spoofing Detection"""
+        """Detect GPS spoofing by monitoring rapid GPS updates"""
         if not (pkt.haslayer(UDP) and pkt.haslayer(Raw)):
             return False, 0, ""
             
         payload = bytes(pkt[Raw])
         
-        # Simple GPS spoofing detection
         if len(payload) >= 20 and pkt[UDP].dport == self.mavlink_port:
             try:
-                # Look for GPS-related MAVLink messages (simplified)
                 if len(payload) > 30:
-                    # Simulate GPS coordinate analysis
                     current_time = time.time()
                     
-                    # Basic GPS anomaly detection
+                    # Detect rapid GPS updates (potential spoofing)
                     if len(self.gps_positions) > 0:
                         last_time = self.gps_positions[-1]
-                        if current_time - last_time < 1:  # Rapid GPS updates
+                        if current_time - last_time < 1:  # Too frequent
                             details = "rapid_gps_changes"
                             return True, 8, details
                     
                     self.gps_positions.append(current_time)
                     
-                    # Keep only recent positions
+                    # Keep 10-second window
                     self.gps_positions = [
                         t for t in self.gps_positions 
                         if current_time - t <= 10
@@ -133,14 +137,14 @@ class Enhanced5AttackDetector:
         return False, 0, ""
     
     def detect_video_hijack(self, pkt):
-        """Attack 3: Video Stream Hijacking"""
+        """Detect video stream hijacking by monitoring packet anomalies"""
         if not pkt.haslayer(UDP) or pkt[UDP].dport != self.video_port:
             return False, 0, ""
             
         stream_key = f"{pkt[IP].src}:{pkt[UDP].sport}"
         packet_size = len(pkt)
         
-        # Track stream characteristics
+        # Initialize stream tracking
         if stream_key not in self.video_streams:
             self.video_streams[stream_key] = {
                 'packet_count': 0,
@@ -150,15 +154,13 @@ class Enhanced5AttackDetector:
         
         stream = self.video_streams[stream_key]
         stream['packet_count'] += 1
-        
-        # Update average packet size
         stream['avg_size'] = (stream['avg_size'] + packet_size) / 2
         
-        # Detect anomalies
-        if packet_size < self.video_anomaly_size:  # Too small for video
+        # Count size anomalies
+        if packet_size < self.video_anomaly_size:
             stream['anomalies'] += 1
             
-        # Check for video hijacking indicators
+        # Check anomaly rate after enough samples
         if stream['packet_count'] > 10:
             anomaly_rate = stream['anomalies'] / stream['packet_count']
             if anomaly_rate > 0.3:  # 30% anomalous packets
@@ -168,17 +170,15 @@ class Enhanced5AttackDetector:
         return False, 0, ""
     
     def detect_mqtt_flood(self, pkt):
-        """Attack 4: MQTT Message Flooding"""
+        """Detect MQTT message flooding attacks"""
         if not pkt.haslayer(TCP) or pkt[TCP].dport != self.mqtt_port:
             return False, 0, ""
             
         current_time = time.time()
         src_ip = pkt[IP].src
         
-        # Track MQTT message rate
+        # Track MQTT rate in 5-second window
         self.mqtt_counts[src_ip].append(current_time)
-        
-        # Keep only last 5 seconds
         self.mqtt_counts[src_ip] = [
             t for t in self.mqtt_counts[src_ip] 
             if current_time - t <= 5
@@ -193,19 +193,17 @@ class Enhanced5AttackDetector:
         return False, 0, ""
     
     def detect_wifi_deauth(self, pkt):
-        """Attack 5: Wi-Fi Deauthentication Attack"""
+        """Detect Wi-Fi deauthentication attacks"""
         if not pkt.haslayer(Dot11):
             return False, 0, ""
             
-        # Check for deauthentication frames
-        if pkt.type == 0 and pkt.subtype == 12:  # Deauth frame
+        # Check for deauth frames (type=0, subtype=12)
+        if pkt.type == 0 and pkt.subtype == 12:
             current_time = time.time()
             src_mac = pkt.addr2 if pkt.addr2 else "unknown"
             
-            # Track deauth rate
+            # Track deauth rate in 5-second window
             self.deauth_counts[src_mac].append(current_time)
-            
-            # Keep only last 5 seconds
             self.deauth_counts[src_mac] = [
                 t for t in self.deauth_counts[src_mac] 
                 if current_time - t <= 5
@@ -220,13 +218,13 @@ class Enhanced5AttackDetector:
         return False, 0, ""
     
     def process_packet(self, pkt):
-        """Process packets for all 5 attacks"""
+        """Main packet processing - runs all attack detections"""
         self.packets_processed += 1
         
         if not self.is_drone_traffic(pkt):
             return
         
-        # Extract basic info
+        # Extract basic packet info
         src_ip = pkt[IP].src if pkt.haslayer(IP) else "unknown"
         dst_ip = pkt[IP].dst if pkt.haslayer(IP) else "unknown"
         
@@ -242,7 +240,7 @@ class Enhanced5AttackDetector:
         elif pkt.haslayer(Dot11):
             protocol = "802.11"
         
-        # Run all 5 attack detections
+        # Run all attack detections
         attacks = [
             ("COMMAND_FLOOD", self.detect_command_flood(pkt)),
             ("GPS_SPOOF", self.detect_gps_spoof(pkt)),
@@ -262,7 +260,7 @@ class Enhanced5AttackDetector:
                 severity = attack_severity
                 details = attack_details
         
-        # Count and report attacks
+        # Alert and count attacks
         if attack_type != "NORMAL":
             self.attacks_found += 1
             print(f"[{attack_type}] from {src_ip} (severity: {severity}) - {details}")
@@ -289,7 +287,7 @@ class Enhanced5AttackDetector:
             print(f"[INFO] Processed: {self.packets_processed}, Attacks: {self.attacks_found}")
     
     def start_detection(self):
-        """Start 5-attack detection"""
+        """Start drone attack detection"""
         print("[*] Enhanced Drone Attack Detector - 5 Attacks")
         print(f"[*] Target Drone: {self.drone_ip}")
         print("[*] Detecting:")
@@ -301,7 +299,7 @@ class Enhanced5AttackDetector:
         print("[*] Press Ctrl+C to stop\n")
         
         try:
-            # Monitor both IP and Wi-Fi traffic
+            # Start packet capture
             sniff(prn=self.process_packet, store=0)
             
         except KeyboardInterrupt:
@@ -316,4 +314,3 @@ class Enhanced5AttackDetector:
 if __name__ == "__main__":
     detector = Enhanced5AttackDetector()
     detector.start_detection()
-
