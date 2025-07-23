@@ -68,9 +68,9 @@ A multi-layered intrusion detection system (IDS) designed for monitoring and det
 
 ### Install dependencies
 
-git clone https://github.com/yourusername/drone-network-security.git
-cd drone-network-security
-pip install -r requirements.txt
+-git clone https://github.com/yourusername/drone-network-security.git
+-cd drone-network-security
+-pip install -r requirements.txt
 
 
 ### Enable monitor mode for wireless interface
