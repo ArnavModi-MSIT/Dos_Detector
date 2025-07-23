@@ -75,8 +75,8 @@ A multi-layered intrusion detection system (IDS) designed for monitoring and det
 
 ### Enable monitor mode for wireless interface
 
-sudo airmon-ng check kill
-sudo airmon-ng start wlan0
+- sudo airmon-ng check kill
+- sudo airmon-ng start wlan0
 
 
 ### Configuration
@@ -91,11 +91,11 @@ sudo airmon-ng start wlan0
 
 Run detection scripts individually or the unified analyzer:
 
-sudo python3 network_layer_detection.py
-sudo python3 internet_layer_detection.py
-sudo python3 transport_layer_detection.py
-sudo python3 application_layer_detection.py
-sudo python3 analyser.py
+- sudo python3 network_layer_detection.py
+- sudo python3 internet_layer_detection.py
+- sudo python3 transport_layer_detection.py
+- sudo python3 application_layer_detection.py
+- sudo python3 analyser.py
 
 
 Run analyzer as background process:
