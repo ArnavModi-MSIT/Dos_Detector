@@ -1,174 +1,147 @@
-# 🛡️ Network Security Detection System
+# 🛡️ Drone & Network Security Detection System
 
-[![Network Security](https://img.shields.io/badge/Network-Security-blue)]()  
-[![Python](https://img.shields.io/badge/Python-3.8+-yellow)]()  
-[![Scapy](https://img.shields.io/badge/Scapy-Packet%20Analysis-green)]()  
-[![License](https://img.shields.io/badge/License-MIT-green)]()
-
-A comprehensive, multi-layered intrusion detection system (IDS) designed to monitor and detect a wide range of network-based attacks across the OSI model. This hybrid system leverages both rule-based heuristics and machine learning models for real-time, high-confidence threat detection.
+A multi-layered intrusion detection system (IDS) designed for monitoring and detecting attacks on both **drone communication networks** and traditional network environments across the OSI model. This system combines rule-based heuristics and machine learning for real-time threat detection.
 
 ---
 
 ## 📚 Table of Contents
 
-- [Features](#features)
-- [Detection Modules](#detection-modules)
-- [Installation & Setup](#installation--setup)
-- [Usage](#usage)
-- [Output](#output)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+- [Features](#features)  
+- [Detection Modules](#detection-modules)  
+- [Installation & Setup](#installation--setup)  
+- [Usage](#usage)  
+- [Output](#output)  
+- [Troubleshooting](#troubleshooting)  
+- [Contributing](#contributing)  
+- [License](#license)  
 
 ---
 
 ## 🚀 Features
 
-- ✅ **Multi-layered Detection:** Monitors attacks across Network, Internet, Transport, and Application layers  
-- 📡 **Real-Time Monitoring:** Live packet inspection and attack detection  
-- 🧠 **Hybrid Analysis:** Combines rule-based signatures with ML-based classification  
-- 🗂️ **Structured Logging:** Stores detections in clean, CSV-formatted logs  
-- 🧩 **Modular Design:** Independent detection modules for each layer  
-- 📶 **Wi-Fi Support:** Specialized detection for wireless-specific attacks  
-- ⚡ **Lightweight:** Optimized for low overhead and fast packet processing
+- ✅ **Drone & Network Detection:** Monitors drone command, telemetry, and video streams alongside Wi-Fi and wired network traffic  
+- 📡 **Multi-layer Coverage:** Network, Internet, Transport, Application layers plus drone-specific threats  
+- 🧠 **Hybrid Approach:** Rule-based signatures combined with machine learning classification  
+- 🗂️ **Structured CSV Logging:** Designed for easy post-analysis  
+- 🧩 **Modular Design:** Independent scripts for each detection layer  
+- 📶 **Wireless and Wired Support:** Works with Wi-Fi monitor mode and standard Ethernet interfaces  
+- ⚡ **Lightweight & Extensible:** Easy to customize and extend  
 
 ---
 
 ## 🔍 Detection Modules
 
-Each layer has a dedicated detection script designed to catch specific threats:
+### Drone & Network Layer  
+- Drone command flooding and GPS spoofing detections  
+- Video hijacking attempts  
+- ARP spoofing, Deauthentication, Evil Twin AP detection  
+- MAC flooding  
 
-### 1. **Network Layer** (`network_layer_detection.py`)
-- ARP Spoofing  
-- Deauthentication Attacks  
-- Evil Twin Access Points  
-- MAC Flooding  
+### Internet Layer  
+- IP spoofing, ICMP/UDP flooding, port scans  
 
-### 2. **Internet Layer** (`internet_layer_detection.py`)
-- IP Spoofing  
-- Ping Flooding  
-- Port Scanning  
+### Transport Layer  
+- TCP SYN, RST, ACK, FIN flood detection  
+- Connection hijacking and session replay attacks  
 
-### 3. **Transport Layer** (`transport_layer_detection.py`)
-- SYN Flood  
-- RST Flood  
-- UDP Flood  
-- Connection Flood  
-- TCP Port Scan  
+### Application Layer  
+- DNS spoofing and tunneling  
+- Cross-site scripting (XSS) and SQL injection   
+- SSL stripping and credential theft  
 
-### 4. **Application Layer** (`application_layer_detection.py`)
-- DNS Spoofing  
-- DNS Tunneling  
-- SQL Injection  
-- Cross-Site Scripting (XSS)  
-- SSL Stripping  
-- Credential Theft  
-
-### 5. **Analyzer** (`analyser.py`)
-- Real-time ML-based predictions  
+### Analyzer (`analyser.py`)  
+- Real-time multi-layer ML classification  
 - Rule-based fallback detection  
-- Custom model support (`combined_rf_model.pkl`)  
-- Dual-mode analysis (offline/online)
+- Supports custom trained detection models  
 
 ---
 
 ## ⚙️ Installation & Setup
 
-### 🔧 Prerequisites
+### Prerequisites
 
 - Python 3.8+  
-- Linux (recommended: Kali Linux or Ubuntu)  
-- Root privileges (`sudo`)  
-- Wireless card supporting **monitor mode**  
-- Minimum 4GB RAM recommended
+- Linux OS (Kali Linux or Ubuntu recommended)  
+- Root permissions (`sudo`)  
+- Wireless card with monitor mode support (for Wi-Fi detection)  
+- Minimum 4GB RAM  
 
-### 📦 Installation
+### Install dependencies
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/network-security-detection.git
-cd network-security-detection
-
-# Install Python dependencies
+git clone https://github.com/yourusername/drone-network-security.git
+cd drone-network-security
 pip install -r requirements.txt
-```
 
-### 📡 Enable Monitor Mode
 
-```bash
+### Enable monitor mode for wireless interface
+
 sudo airmon-ng check kill
 sudo airmon-ng start wlan0
-```
 
-### 🔧 Configuration
 
-Edit each detection script to:
-- Set your **monitoring interface** (e.g., `wlan0mon`)  
-- Add **target MAC/IP filters** if needed  
-- Adjust thresholds and detection rules as needed  
+### Configuration
+
+- Set your monitoring interface (default: `wlan0mon`) in each detection script  
+- Edit target MAC/IP addresses for drones or network devices if needed  
+- Tune detection thresholds for your environment  
 
 ---
 
 ## 🧪 Usage
 
-### 🎮 Basic Commands
+Run detection scripts individually or the unified analyzer:
 
-```bash
 sudo python3 network_layer_detection.py
 sudo python3 internet_layer_detection.py
 sudo python3 transport_layer_detection.py
 sudo python3 application_layer_detection.py
 sudo python3 analyser.py
-```
 
-### 🧭 Run in Background
 
-```bash
+Run analyzer as background process:
+
 nohup sudo python3 analyser.py > detection.log 2>&1 &
-```
+
 
 ---
 
 ## 📁 Output
 
-All detection modules output CSV files for post-analysis and logging:
+- Logs saved in CSV format:  
+  - `drone_network_attacks.csv`  
+  - `internet_layer_attacks.csv`  
+  - `transport_layer_attacks.csv`  
+  - `application_layer_attacks.csv`  
+  - `combined_analysis_report.csv` (analyser output)  
 
-- `network_layer_attacks.csv`  
-- `internet_layer_attacks.csv`  
-- `transport_layer_attacks.csv`  
-- `application_layer_attacks.csv`  
-- `combined_analysis_report.csv` (from analyser)
-
-Models and encoders are saved in:
-- `combined_rf_model.pkl`
+- Trained model files:  
+  - `combined_rf_model.pkl`  
 
 ---
 
-## 🛠️ Troubleshooting
+## 🛠️ Troubleshooting Tips
 
-| Issue | Solution |
-|-------|----------|
-| `Permission denied` | Run with `sudo` |
-| `Interface not found` | Use `iwconfig` to confirm interface name |
-| No packets captured | Ensure monitor mode is active |
-| ML model error | Retrain model using `model_trainer.py` |
-| Dependency errors | Reinstall using `pip install -r requirements.txt` |
+| Problem                  | Solution                                       |
+|--------------------------|------------------------------------------------|
+| Permission errors        | Run scripts with `sudo`                          |
+| Wireless interface issues | Verify interface name with `iwconfig`           |
+| No captured packets      | Ensure monitor mode is enabled                    |
+| ML model prediction errors| Retrain with `train.py` or check data formats    |
+| Missing dependencies     | Reinstall with `pip install -r requirements.txt`|
 
 ---
 
 ## 🤝 Contributing
 
-We welcome community contributions!
+We welcome your contributions!
 
-1. Fork the repository  
-2. Create a feature branch  
-3. Commit your changes  
-4. Push to your fork  
-5. Open a pull request
-
+1. Fork the repo  
+2. Create a new branch  
+3. Make your changes  
+4. Submit a pull request  
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** 
+This project is licensed under the **MIT License**
