@@ -100,7 +100,7 @@ Run detection scripts individually or the unified analyzer:
 
 Run analyzer as background process:
 
-nohup sudo python3 analyser.py > detection.log 2>&1 &
+- nohup sudo python3 analyser.py > detection.log 2>&1 &
 
 
 ---
