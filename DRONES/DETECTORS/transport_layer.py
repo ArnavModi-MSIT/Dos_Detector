@@ -30,9 +30,9 @@ class DroneTransportLayerDetector:
         self.csv_file = "drone_transport_attacks.csv"
         
         # Drone ecosystem IP addresses (configure for your environment)
-        self.drone_ip = "192.168.4.1"           # Main drone IP
-        self.ground_station_ip = "192.168.4.2"  # Ground control station
-        self.controller_ip = "192.168.4.3"      # Remote controller
+        self.drone_ip = ""           # Main drone IP
+        self.ground_station_ip = ""  # Ground control station
+        self.controller_ip = ""      # Remote controller
         
         # Critical drone service ports
         self.drone_ports = {
